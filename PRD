@@ -1,0 +1,128 @@
+PRD (Product Requirements Document)
+
+1. 제품 사양
+1.1 사용자 인터페이스
+┌─────────────────────────────────────┐
+│        🚗 경로 최적화 도구           │
+├─────────────────────────────────────┤
+│ 1. 현재 위치: [입력필드] [📍현재위치] │
+│ 2. CSV 업로드: [파일선택영역]        │
+│ 3. 지역 선택: [드롭다운]             │
+│ 4. [📊 경로 계산하기]               │
+├─────────────────────────────────────┤
+│              지도 영역               │
+│         (순서별 마커 표시)           │
+├─────────────────────────────────────┤
+│          방문 목록 + 체크박스         │
+└─────────────────────────────────────┘
+1.2 API 키 관리 방안
+문제: 60대 사용자가 API 키 발급 어려움
+해결책:
+javascript// 미리 발급받은 API 키를 코드에 포함
+const KAKAO_API_KEY = "발급받은키";
+// 또는 간단한 입력 필드 제공
+1.3 데이터 구조
+javascript// CSV 파싱 결과
+const addressData = {
+    name: "상호명",
+    contact: "연락처", 
+    address: "전체주소"
+};
+
+// 방문완료 저장
+const visitedKey = `${name}_${address}`.replace(/\s+/g, '');
+localStorage.setItem('visited_' + visitedKey, true);
+2. 기능 상세 명세
+2.1 현재위치 설정
+javascript// GPS 자동 위치
+navigator.geolocation.getCurrentPosition(success, error);
+
+// Kakao 좌표→주소 변환
+geocoder.coord2Address(lng, lat, callback);
+2.2 CSV 파싱 로직
+javascript// 지원 형식
+// 이름, 연락처, 주소
+// 홍길동, 010-1234-5678, 서울시 강남구 테헤란로 123
+
+// 자동 컬럼 감지
+function detectColumns(row) {
+    // 주소 패턴: "시/도 + 구/군" 포함
+    // 연락처 패턴: 숫자 8자리 이상
+    // 이름: 한글 2-4글자 또는 상호명
+}
+2.3 지역 그룹핑 알고리즘
+javascriptfunction groupByRegion(addresses) {
+    const regions = {
+        '서울 강남권': ['강남구', '서초구', '송파구', '강동구'],
+        '서울 서부': ['강서구', '양천구', '구로구', '금천구'],
+        '경기 남부': ['수원', '성남', '용인', '화성'],
+        // ... 전국 주요 지역
+    };
+    
+    return addresses.reduce((groups, addr) => {
+        const region = detectRegion(addr.address);
+        groups[region] = groups[region] || [];
+        groups[region].push(addr);
+        return groups;
+    }, {});
+}
+2.4 경로 최적화 알고리즘
+javascriptasync function optimizeRoute(origin, destinations) {
+    // 1단계: 출발지에서 모든 목적지까지 거리 계산
+    const distances = await kakao.maps.services.DistanceMatrix({
+        origins: [origin],
+        destinations: destinations.map(d => d.address)
+    });
+    
+    // 2단계: 그리디 알고리즘으로 최근접 순서 정렬
+    const route = [];
+    let current = origin;
+    let remaining = [...destinations];
+    
+    while (remaining.length > 0) {
+        const nearest = findNearest(current, remaining);
+        route.push(nearest);
+        current = nearest.address;
+        remaining = remaining.filter(d => d !== nearest);
+    }
+    
+    return route;
+}
+3. 개발 우선순위
+Phase 1 (MVP)
+
+✅ 기본 UI 구조
+✅ CSV 파싱 기능
+✅ 지역 그룹핑
+✅ Kakao 지도 표시
+
+Phase 2 (핵심 기능)
+
+🔄 Direction API 연동
+🔄 경로 최적화 알고리즘
+🔄 방문완료 저장
+
+Phase 3 (편의 기능)
+
+⏳ 결과 Excel 다운로드
+⏳ 인쇄 기능
+⏳ 모바일 최적화
+
+4. 제약사항 및 고려사항
+4.1 API 제한사항
+
+Kakao Direction API: 1일 100,000건
+한 번에 최대 5개 경유지 계산
+지역당 50개 이상 주소 시 분할 계산
+
+4.2 사용자 경험
+
+로딩 시간 최소화 (5초 이내)
+명확한 진행 상태 표시
+에러 시 친화적 메시지
+
+4.3 데이터 보안
+
+API 키 노출 방지
+개인정보 브라우저 내 저장만
+
