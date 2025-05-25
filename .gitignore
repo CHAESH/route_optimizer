@@ -2,5 +2,25 @@
 .DS_Store
 Thumbs.db
 *.log
+
+# 에디터 설정
 .vscode/
+.idea/
+
+# 캐시 및 임시 파일
 .cache/
+*.tmp
+*.temp
+
+# AnySign 관련 파일들
+.CFUserTextEncoding
+preference.cfg
+AnySign*.conf
+*.tbl
+ca_cert_sh2.crt
+issuer.tbl
+policy*.tbl
+provider.tbl
+xecure*.cfg
+XecureWebLog-*
+BankCode.tbl
