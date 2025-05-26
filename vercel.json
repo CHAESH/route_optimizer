@@ -1,21 +1,11 @@
 {
     "version": 2,
-    "functions": {
-        "api/*.js": {
-            "runtime": "@vercel/node@latest"
-        }
-    },
-    "routes": [
-        {
-            "src": "/api/(.*)",
-            "dest": "/api/$1"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/$1"
-        }
+    "builds": [
+        { "src": "api/**/*.js", "use": "@vercel/node" },
+        { "src": "*.html", "use": "@vercel/static" }
     ],
-    "env": {
-        "KAKAO_API_KEY": "@kakao_api_key"
-    }
+    "routes": [
+        { "src": "/api/(.*)", "dest": "/api/$1" },
+        { "src": "/(.*)", "dest": "/$1" }
+    ]
 } 
