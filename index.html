@@ -4,8 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>경로 최적화 도구</title>
-    <!-- Kakao 지도 API 로드 -->
-    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=%%KAKAO_MAPS_API_KEY%%&libraries=services,clusterer,drawing"></script>
+    <!-- 환경 변수 로드 -->
+    <script>
+        // API 키를 동적으로 로드
+        fetch('/api/config')
+            .then(response => response.json())
+            .then(config => {
+                // Kakao Maps SDK 동적 로드
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${config.KAKAO_MAPS_API_KEY}&libraries=services,clusterer,drawing`;
+                script.onload = () => {
+                    console.log('✅ Kakao Maps SDK 로드 완료');
+                    // 앱 초기화
+                    waitForKakaoMaps();
+                };
+                document.head.appendChild(script);
+            })
+            .catch(error => {
+                console.error('설정 로드 실패:', error);
+            });
+    </script>
     <script>
         // Kakao Maps API 키 설정 (이미 SDK 초기화 시 사용되었으므로 제거)
         

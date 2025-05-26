@@ -48,6 +48,7 @@ sample_data/
 
 # API 키 설정 파일
 config.js
+!api/config.js  # API 엔드포인트는 제외
 
 # 시스템 파일
 .DS_Store
@@ -59,4 +60,5 @@ Thumbs.db
 
 # 임시 파일
 *.log
-*.tmp*.bak
+*.tmp
+*.bak
