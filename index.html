@@ -5,21 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>경로 최적화 도구</title>
     <script src="config.js"></script>
-    <script>
-        // config.js가 로드된 후 Kakao Maps SDK 로드
-        window.onload = function() {
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${window.KAKAO_MAP_CONFIG.API_KEY}&libraries=services,geometry&autoload=false`;
-            script.onload = function() {
-                kakao.maps.load(function() {
-                    console.log('✅ Kakao Maps SDK 로드 완료');
-                    initializeApp();
-                });
-            };
-            document.head.appendChild(script);
-        };
-    </script>
+    <!-- Kakao 지도 API 로드 -->
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=b88deb3a9603941f23c68c78e1cdc205&libraries=services"></script>
     <style>
         * { box-sizing: border-box; }
         
@@ -623,6 +610,7 @@
         let regionGroups = {};
         let optimizedRoute = null;
         let currentLocation = '';
+        let currentLocationMarker = null;
 
         // 페이지 로드 완료 후 초기화
         window.addEventListener('load', function() {
@@ -693,57 +681,57 @@
 
         // 현재 위치 가져오기
         function getCurrentLocation() {
-            const btn = document.getElementById('getCurrentLocationBtn');
-            const status = document.getElementById('locationStatus');
-            const locationInput = document.getElementById('currentLocation');
-            
-            btn.disabled = true;
-            btn.textContent = '위치 찾는 중...';
-            status.style.display = 'block';
-            status.textContent = '현재 위치를 확인하고 있습니다...';
-            status.style.color = '#3498db';
-            
-            if (!navigator.geolocation) {
-                showLocationError('이 브라우저는 위치 서비스를 지원하지 않습니다.');
-                return;
-            }
-            
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    try {
-                        const { latitude, longitude } = position.coords;
-                        console.log(`현재 좌표: ${latitude}, ${longitude}`);
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        const locPosition = new kakao.maps.LatLng(lat, lng);
                         
-                        status.textContent = '주소를 변환하고 있습니다...';
+                        // 기존 현재 위치 마커 제거
+                        if (currentLocationMarker) {
+                            currentLocationMarker.setMap(null);
+                        }
                         
-                        // 카카오맵 API로 좌표를 주소로 변환
-                        geocoder.coord2Address(longitude, latitude, (result, status) => {
-                            if (status === kakao.maps.services.Status.OK) {
-                                const address = result[0].address.address_name;
-                                locationInput.value = address;
-                                status.textContent = `✅ 현재 위치: ${address}`;
-                                status.style.color = '#27ae60';
-                                console.log(`현재 위치 설정 완료: ${address}`);
-                            } else {
-                                showLocationError('주소 변환에 실패했습니다. 수동으로 입력해주세요.');
-                            }
+                        // 새 마커 생성
+                        currentLocationMarker = new kakao.maps.Marker({
+                            map: map,
+                            position: locPosition
                         });
                         
-                    } catch (error) {
-                        console.error('주소 변환 실패:', error);
-                        showLocationError('주소 변환에 실패했습니다. 수동으로 입력해주세요.');
+                        // 지도 중심 이동
+                        map.setCenter(locPosition);
+                        map.setLevel(4);
+                        
+                        // 상태 메시지 표시
+                        showStatus('locationStatus', '현재 위치를 찾았습니다.', 'success');
+                    },
+                    function(error) {
+                        let errorMessage;
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = '위치 정보 접근이 거부되었습니다.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = '위치 정보를 사용할 수 없습니다.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = '위치 정보 요청이 시간 초과되었습니다.';
+                                break;
+                            default:
+                                errorMessage = '알 수 없는 오류가 발생했습니다.';
+                        }
+                        showStatus('locationStatus', errorMessage, 'error');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        maximumAge: 0,
+                        timeout: 5000
                     }
-                },
-                (error) => {
-                    console.error('위치 가져오기 실패:', error);
-                    handleGeolocationError(error);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 300000
-                }
-            );
+                );
+            } else {
+                showStatus('locationStatus', '이 브라우저에서는 위치 정보를 사용할 수 없습니다.', 'error');
+            }
         }
 
         // 지도에 경로 표시
@@ -2069,73 +2057,57 @@
 
         // 현재 위치 자동 설정
         function getCurrentLocation() {
-            const btn = document.getElementById('getCurrentLocationBtn');
-            const status = document.getElementById('locationStatus');
-            const locationInput = document.getElementById('currentLocation');
-            
-            // 버튼 상태 변경
-            btn.disabled = true;
-            btn.textContent = '위치 찾는 중...';
-            status.style.display = 'block';
-            status.textContent = '현재 위치를 확인하고 있습니다...';
-            status.style.color = '#3498db';
-            
-            // Geolocation API 지원 확인
-            if (!navigator.geolocation) {
-                showLocationError('이 브라우저는 위치 서비스를 지원하지 않습니다.');
-                return;
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        const locPosition = new kakao.maps.LatLng(lat, lng);
+                        
+                        // 기존 현재 위치 마커 제거
+                        if (currentLocationMarker) {
+                            currentLocationMarker.setMap(null);
+                        }
+                        
+                        // 새 마커 생성
+                        currentLocationMarker = new kakao.maps.Marker({
+                            map: map,
+                            position: locPosition
+                        });
+                        
+                        // 지도 중심 이동
+                        map.setCenter(locPosition);
+                        map.setLevel(4);
+                        
+                        // 상태 메시지 표시
+                        showStatus('locationStatus', '현재 위치를 찾았습니다.', 'success');
+                    },
+                    function(error) {
+                        let errorMessage;
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = '위치 정보 접근이 거부되었습니다.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = '위치 정보를 사용할 수 없습니다.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = '위치 정보 요청이 시간 초과되었습니다.';
+                                break;
+                            default:
+                                errorMessage = '알 수 없는 오류가 발생했습니다.';
+                        }
+                        showStatus('locationStatus', errorMessage, 'error');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        maximumAge: 0,
+                        timeout: 5000
+                    }
+                );
+            } else {
+                showStatus('locationStatus', '이 브라우저에서는 위치 정보를 사용할 수 없습니다.', 'error');
             }
-            
-            // 현재 위치 가져오기
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    try {
-                        const { latitude, longitude } = position.coords;
-                        console.log(`현재 좌표: ${latitude}, ${longitude}`);
-                        
-                        status.textContent = '주소를 변환하고 있습니다...';
-                        
-                        // 좌표를 주소로 변환 (Reverse Geocoding)
-                        const address = await reverseGeocode(latitude, longitude);
-                        
-                        locationInput.value = address;
-                        status.textContent = `✅ 현재 위치: ${address}`;
-                        status.style.color = '#27ae60';
-                        
-                        console.log(`현재 위치 설정 완료: ${address}`);
-                        
-                    } catch (error) {
-                        console.error('주소 변환 실패:', error);
-                        showLocationError('주소 변환에 실패했습니다. 수동으로 입력해주세요.');
-                    }
-                },
-                (error) => {
-                    console.error('위치 가져오기 실패:', error);
-                    
-                    let errorMessage = '';
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            errorMessage = '위치 접근 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errorMessage = '위치 정보를 사용할 수 없습니다.';
-                            break;
-                        case error.TIMEOUT:
-                            errorMessage = '위치 요청 시간이 초과되었습니다.';
-                            break;
-                        default:
-                            errorMessage = '알 수 없는 오류가 발생했습니다.';
-                            break;
-                    }
-                    
-                    showLocationError(errorMessage);
-                },
-                {
-                    enableHighAccuracy: true, // 정확도 우선
-                    timeout: 10000, // 10초 타임아웃
-                    maximumAge: 300000 // 5분 캐시
-                }
-            );
         }
         
         // 좌표를 주소로 변환
