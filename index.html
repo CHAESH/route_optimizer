@@ -70,6 +70,7 @@
             console.log('앱 초기화 시작');
             
             try {
+                // 지도 초기화
                 initializeMap();
                 
                 // 카카오맵 API 초기화
@@ -78,12 +79,16 @@
                 
                 // 방문 기록 로드
                 loadVisitedAddresses();
+                console.log('방문 기록 로드 완료: ' + visitedAddresses.size);
                 
                 // 이벤트 리스너 등록
                 setupEventListeners();
                 
                 console.log('앱 초기화 완료');
-                    } catch (error) {
+
+                // 지도 초기화 완료 후 현재 위치 가져오기
+                getCurrentLocation();
+            } catch (error) {
                 console.error('❌ 앱 초기화 실패:', error);
                 showError('앱 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
             }
@@ -119,9 +124,11 @@
             }
 
             const locationStatus = document.getElementById('locationStatus');
-            locationStatus.style.display = 'block';
-            locationStatus.textContent = '현재 위치를 찾는 중...';
-            locationStatus.style.color = '#7f8c8d';
+            if (locationStatus) {
+                locationStatus.style.display = 'block';
+                locationStatus.textContent = '현재 위치를 찾는 중...';
+                locationStatus.style.color = '#7f8c8d';
+            }
 
             if (navigator.geolocation) {
                 const options = {
@@ -132,6 +139,11 @@
 
                 navigator.geolocation.getCurrentPosition(
                     function(position) {
+                        if (!map) {
+                            console.error('지도가 초기화되지 않았습니다.');
+                            return;
+                        }
+
                         try {
                             const lat = position.coords.latitude;
                             const lng = position.coords.longitude;
@@ -144,7 +156,7 @@
                             
                             // 새 마커 생성
                             currentLocationMarker = new kakao.maps.Marker({
-                        map: map,
+                                map: map,
                                 position: locPosition
                             });
                             
@@ -157,14 +169,17 @@
                                 if (status === kakao.maps.services.Status.OK) {
                                     if (result[0]?.address) {
                                         const address = result[0].address.address_name;
-                                        document.getElementById('currentLocation').value = address;
+                                        const currentLocationInput = document.getElementById('currentLocation');
+                                        if (currentLocationInput) {
+                                            currentLocationInput.value = address;
+                                        }
                                         showStatus('locationStatus', '현재 위치를 찾았습니다: ' + address, 'success');
                                     }
                                 } else {
                                     showStatus('locationStatus', '주소를 찾을 수 없습니다.', 'error');
                                 }
                             });
-            } catch (error) {
+                        } catch (error) {
                             console.error('위치 처리 중 오류:', error);
                             showStatus('locationStatus', '위치 정보 처리 중 오류가 발생했습니다.', 'error');
                         }
@@ -188,7 +203,7 @@
                     },
                     options
                 );
-                } else {
+            } else {
                 showStatus('locationStatus', '이 브라우저에서는 위치 정보를 사용할 수 없습니다.', 'error');
             }
         }
