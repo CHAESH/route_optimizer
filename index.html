@@ -4,25 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>경로 최적화 도구</title>
+    <!-- 로딩 상태 표시 스타일 -->
+    <style>
+        #loadingStatus {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        .error {
+            color: #e74c3c;
+        }
+    </style>
+    <!-- 로딩 상태 표시 -->
+    <div id="loadingStatus">지도를 불러오는 중...</div>
     <!-- 환경 변수 로드 -->
     <script>
         // API 키를 동적으로 로드
         fetch('/api/config')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('API 설정을 불러올 수 없습니다.');
+                }
+                return response.json();
+            })
             .then(config => {
+                if (!config.KAKAO_MAPS_API_KEY) {
+                    throw new Error('Kakao Maps API 키가 설정되지 않았습니다.');
+                }
                 // Kakao Maps SDK 동적 로드
                 const script = document.createElement('script');
                 script.type = 'text/javascript';
                 script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${config.KAKAO_MAPS_API_KEY}&libraries=services,clusterer,drawing`;
                 script.onload = () => {
                     console.log('✅ Kakao Maps SDK 로드 완료');
+                    document.getElementById('loadingStatus').style.display = 'none';
                     // 앱 초기화
                     waitForKakaoMaps();
+                };
+                script.onerror = () => {
+                    throw new Error('Kakao Maps SDK 로드 실패');
                 };
                 document.head.appendChild(script);
             })
             .catch(error => {
                 console.error('설정 로드 실패:', error);
+                const loadingStatus = document.getElementById('loadingStatus');
+                loadingStatus.textContent = `오류: ${error.message}`;
+                loadingStatus.classList.add('error');
             });
     </script>
     <script>
